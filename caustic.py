@@ -20,12 +20,11 @@ caustic_instnames['SAWS'] = 'SawSynth'
 
 patletters = ['A','B','C','D']
 
-#python caustic_test.py
-
 global EFFX_num
     
 EFFX_num = 0
 
+# --------------------------------------------- Patterns ---------------------------------------------
 
 def parse_note(SPAT_str, numnotes):
     notelist = []
@@ -69,6 +68,8 @@ def deconstruct_SPAT(bio_in):
             numnote = l_patterns[patletters[patletter]+str(patnum+1)]['numnote']
             parse_note(SPAT_str, numnote)
 
+# --------------------------------------------- Controls ---------------------------------------------
+
 def deconstruct_CCOL(bio_in):
     print('[format-caustic] CCOL |', end=' ')
     if bio_in.read(4) != b'CCOL':
@@ -85,7 +86,7 @@ def deconstruct_CCOL(bio_in):
     print(str(len(CCOL_l_out))+' Controls')
     return CCOL_l_out
 
-
+# --------------------------------------------- FX ---------------------------------------------
 def deconstruct_fx(EFFX_str, l_fxparams):
     fxtype = int.from_bytes(EFFX_str.read(4), "little")
     print(fxtype)
@@ -159,7 +160,6 @@ def deconstruct_fx(EFFX_str, l_fxparams):
         params['type'] = 'AutoPan'
         params['controls'] = deconstruct_CCOL(EFFX_str)
 
-
 def deconstruct_EFFX(bi_rack, Caustic_Main):
     global EFFX_num
     EFFX_size = int.from_bytes(bi_rack.read(4), "little")
@@ -180,6 +180,8 @@ def deconstruct_EFFX(bi_rack, Caustic_Main):
     if EFFX_num == 0: bi_rack.read(4)
     Caustic_Main['EFFX'+str(EFFX_num)] = EFFX_data
     EFFX_num += 1
+
+# --------------------------------------------- Inst ---------------------------------------------
 
 def deconstruct_machine(datain, l_machine):
     #print(datain[:100])
@@ -393,6 +395,7 @@ def deconstruct_OUTP(bi_rack, Caustic_Main):
         te_num += 1
     Caustic_Main['Machines'] = caustic_machines
 
+# --------------------------------------------- Main ---------------------------------------------
 
 def deconstruct_main(filepath):
     fileobject = open(filepath, 'rb')

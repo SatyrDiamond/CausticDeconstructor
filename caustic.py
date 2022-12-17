@@ -24,7 +24,7 @@ patletters = ['A','B','C','D']
 
 global EFFX_num
     
-EFFX_num = 1
+EFFX_num = 0
 
 
 def parse_note(SPAT_str, numnotes):
@@ -38,7 +38,7 @@ def parse_note(SPAT_str, numnotes):
 def deconstruct_SPAT(bio_in):
     global patletters
 
-    print('[format-caustic] SPAT |')
+    print('[format-caustic] SPAT')
     if bio_in.read(4) != b'SPAT':
         print('data is not SPAT')
         exit()
@@ -85,19 +85,107 @@ def deconstruct_CCOL(bio_in):
     print(str(len(CCOL_l_out))+' Controls')
     return CCOL_l_out
 
+
+def deconstruct_fx(EFFX_str, l_fxparams):
+    fxtype = int.from_bytes(EFFX_str.read(4), "little")
+    print(fxtype)
+    params = l_fxparams
+    if fxtype == 0: 
+        params['type'] = 'Delay'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+        EFFX_str.read(4)
+    if fxtype == 1: 
+        params['type'] = 'Reverb'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 2: 
+        params['type'] = 'Distortion'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 3: 
+        params['type'] = 'Compresser'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+        EFFX_str.read(4)
+    if fxtype == 4: 
+        params['type'] = 'Bitcrush'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 5: 
+        params['type'] = 'Flanger'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+        EFFX_str.read(4)
+    if fxtype == 6: 
+        params['type'] = 'Phaser'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 7: 
+        params['type'] = 'Chorus'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+        EFFX_str.read(4)
+    if fxtype == 8: 
+        params['type'] = 'AutoWah'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 9: 
+        params['type'] = 'Param EQ'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 10: 
+        params['type'] = 'Limiter'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 11: 
+        params['type'] = 'VInylSim'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 12: 
+        params['type'] = 'Comb'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 14: 
+        params['type'] = 'Cab Sim'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 16: 
+        params['type'] = 'StaticFlanger'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+        EFFX_str.read(4)
+    if fxtype == 17: 
+        params['type'] = 'Filter'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+        EFFX_str.read(4)
+    if fxtype == 18: 
+        params['type'] = 'Octaver'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+        EFFX_str.read(4)
+    if fxtype == 19: 
+        params['type'] = 'Vibrato'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+        EFFX_str.read(4)
+    if fxtype == 20: 
+        params['type'] = 'Tremolo'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+    if fxtype == 21: 
+        params['type'] = 'AutoPan'
+        params['controls'] = deconstruct_CCOL(EFFX_str)
+
+
 def deconstruct_EFFX(bi_rack, Caustic_Main):
-    print('[format-caustic] EFFX')
     global EFFX_num
     EFFX_size = int.from_bytes(bi_rack.read(4), "little")
     EFFX_data = bi_rack.read(EFFX_size)
-    if EFFX_num == 1: bi_rack.read(4)
+    EFFX_str = data_bytes.bytearray2BytesIO(EFFX_data)
+
+    for fxtrk in range(7): 
+        Caustic_Main['EFFX'][(fxtrk+1)+(EFFX_num*7)] = {}
+        for fxslot in range(2): 
+            Caustic_Main['EFFX'][(fxtrk+1)+(EFFX_num*7)][fxslot+1] = {}
+
+    for fxtrk in range(7): 
+        for fxslot in range(2): 
+            print('[format-caustic] EFFX | Track', (fxtrk+1)+(EFFX_num*7), 'Slot', fxslot+1)
+            l_fxparams = Caustic_Main['EFFX'][(fxtrk+1)+(EFFX_num*7)][(fxslot+1)]
+            deconstruct_fx(EFFX_str, l_fxparams)
+
+    if EFFX_num == 0: bi_rack.read(4)
     Caustic_Main['EFFX'+str(EFFX_num)] = EFFX_data
     EFFX_num += 1
 
 def deconstruct_machine(datain, l_machine):
     #print(datain[:100])
     data_str = data_bytes.bytearray2BytesIO(datain)
-    if l_machine['id'] == 'SSYN': # SubSynth
+    # -------------------------------- SubSynth --------------------------------
+    if l_machine['id'] == 'SSYN':
         l_machine['unknown1'] = int.from_bytes(data_str.read(2), "little")
         l_machine['unknown2'] = int.from_bytes(data_str.read(1), "little")
         l_machine['unknown3'] = int.from_bytes(data_str.read(1), "little")
@@ -110,7 +198,8 @@ def deconstruct_machine(datain, l_machine):
         l_machine['customwaveform2'] = data_str.read(1320)
         data_str.read(12)
         l_machine['patterns'] = deconstruct_SPAT(data_str)
-    elif l_machine['id'] == 'BLNE': # BassLine
+    # -------------------------------- BassLine --------------------------------
+    elif l_machine['id'] == 'BLNE':
         l_machine['unknown1'] = int.from_bytes(data_str.read(2), "little")
         l_machine['unknown2'] = int.from_bytes(data_str.read(1), "little")
         l_machine['unknown3'] = int.from_bytes(data_str.read(1), "little")
@@ -122,7 +211,8 @@ def deconstruct_machine(datain, l_machine):
         l_machine['patterns'] = deconstruct_SPAT(data_str)
         data_str.read(4)
         l_machine['customwaveform'] = data_str.read(1320)
-    elif l_machine['id'] == 'PADS': # PadSynth
+    # -------------------------------- PadSynth --------------------------------
+    elif l_machine['id'] == 'PADS':
         l_machine['controls'] = deconstruct_CCOL(data_str)
         l_machine['presetname'] = data_str.read(32).split(b'\x00')[0].decode('ascii')
         presetpath_size = int.from_bytes(data_str.read(4), "little")
@@ -135,7 +225,8 @@ def deconstruct_machine(datain, l_machine):
         l_machine['harm2'] = struct.unpack("ffffffffffffffffffffffff", data_str.read(96))
         l_machine['harm2vol'] = struct.unpack("f", data_str.read(4))[0]
         l_machine['patterns'] = deconstruct_SPAT(data_str)
-    elif l_machine['id'] == 'ORGN': # Organ
+    # -------------------------------- Organ --------------------------------
+    elif l_machine['id'] == 'ORGN':
         l_machine['controls'] = deconstruct_CCOL(data_str)
         l_machine['presetname'] = data_str.read(32).split(b'\x00')[0].decode('ascii')
         presetpath_size = int.from_bytes(data_str.read(4), "little")
@@ -143,7 +234,8 @@ def deconstruct_machine(datain, l_machine):
         data_str.read(4)
         l_machine['unknown1'] = int.from_bytes(data_str.read(4), "little")
         l_machine['patterns'] = deconstruct_SPAT(data_str)
-    elif l_machine['id'] == 'FMSN': # FMSynth
+    # -------------------------------- FMSynth --------------------------------
+    elif l_machine['id'] == 'FMSN':
         l_machine['unknown1'] = int.from_bytes(data_str.read(2), "little")
         l_machine['unknown2'] = int.from_bytes(data_str.read(1), "little")
         l_machine['unknown3'] = int.from_bytes(data_str.read(1), "little")
@@ -155,9 +247,122 @@ def deconstruct_machine(datain, l_machine):
         l_machine['presetpath'] = data_str.read(presetpath_size).split(b'\x00')[0].decode('ascii')
         data_str.read(4)
         l_machine['patterns'] = deconstruct_SPAT(data_str)
-        print(data_str.read(100))
-    else: exit()
+    # -------------------------------- KSSynth --------------------------------
+    elif l_machine['id'] == 'KSSN':
+        l_machine['unknown1'] = int.from_bytes(data_str.read(2), "little")
+        l_machine['unknown2'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['unknown3'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['controls'] = deconstruct_CCOL(data_str)
+        l_machine['presetname'] = data_str.read(32).split(b'\x00')[0].decode('ascii')
+        presetpath_size = int.from_bytes(data_str.read(4), "little")
+        l_machine['presetpath'] = data_str.read(presetpath_size).split(b'\x00')[0].decode('ascii')
+        data_str.read(4)
+        l_machine['patterns'] = deconstruct_SPAT(data_str)
+    # -------------------------------- 8BitSynth --------------------------------
+    elif l_machine['id'] == '8SYN':
+        l_machine['unknown1'] = int.from_bytes(data_str.read(2), "little")
+        l_machine['unknown2'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['unknown3'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['controls'] = deconstruct_CCOL(data_str)
+        l_machine['bitcode1'] = data_str.read(128).split(b'\x00')[0].decode('ascii')
+        l_machine['bitcode2'] = data_str.read(128).split(b'\x00')[0].decode('ascii')
+        l_machine['unknown4'] = int.from_bytes(data_str.read(4), "little")
+        l_machine['unknown5'] = int.from_bytes(data_str.read(4), "little")
+        l_machine['presetname'] = data_str.read(32).split(b'\x00')[0].decode('ascii')
+        presetpath_size = int.from_bytes(data_str.read(4), "little")
+        l_machine['presetpath'] = data_str.read(presetpath_size).split(b'\x00')[0].decode('ascii')
+        data_str.read(4)
+        l_machine['patterns'] = deconstruct_SPAT(data_str)
+    # -------------------------------- BeatBox --------------------------------
+    elif l_machine['id'] == 'BBOX':
+        l_machine['unknown1'] = int.from_bytes(data_str.read(2), "little")
+        l_machine['unknown2'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['unknown3'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['controls'] = deconstruct_CCOL(data_str)
+        l_machine['patterns'] = deconstruct_SPAT(data_str)
+        l_machine['samples'] = []
+        data_str.read(256)
+        data_str.read(8)
+        for _ in range(8):
+            sampledata = {}
+            sample_name = data_str.read(32).split(b'\x00')[0].decode('ascii')
+            sample_len = int.from_bytes(data_str.read(4), "little")
+            sample_hz = int.from_bytes(data_str.read(4), "little")
+            sample_chan = int.from_bytes(data_str.read(4), "little")
+            print('[format-caustic] BBOX | len:'+str(sample_len)+', hz:'+str(sample_hz)+', ch:'+str(sample_chan))
+            sampledata['data'] = data_str.read((sample_len*2)*sample_chan)
+            sampledata['name'] = sample_name
+            sampledata['hz'] = sample_hz
+            sampledata['len'] = sample_len
+            sampledata['chan'] = sample_chan
+            l_machine['samples'].append(sampledata)
+    # -------------------------------- Vocoder --------------------------------
+    elif l_machine['id'] == 'VCDR':
+        l_machine['unknown1'] = int.from_bytes(data_str.read(2), "little")
+        l_machine['unknown2'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['unknown3'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['controls'] = deconstruct_CCOL(data_str)
+        l_machine['currentnumber'] = int.from_bytes(data_str.read(4), "little")
+        l_machine['samples'] = []
+        data_str.read(28)
+        data_str.read(8)
 
+        for _ in range(6):
+            sampledata = {}
+            sample_name = data_str.read(256).split(b'\x00')[0].decode('ascii')
+            data_str.read(4)
+            sample_len = int.from_bytes(data_str.read(4), "little")
+            sample_hz = int.from_bytes(data_str.read(4), "little")
+            sample_data = data_str.read(sample_len*2)
+            print('[format-caustic] VCDR | len:'+str(sample_len)+', hz:'+str(sample_hz))
+            sampledata['name'] = sample_name
+            sampledata['len'] = sample_len
+            sampledata['hz'] = sample_hz
+            sampledata['data'] = sample_data
+            l_machine['samples'].append(sampledata)
+
+        l_machine['unknown4'] = int.from_bytes(data_str.read(4), "little")
+        l_machine['patterns'] = deconstruct_SPAT(data_str)
+    # -------------------------------- Modular --------------------------------
+    elif l_machine['id'] == 'MDLR': pass
+    # -------------------------------- PCMSynth --------------------------------
+    elif l_machine['id'] == 'PCMS': 
+        l_machine['unknown1'] = int.from_bytes(data_str.read(2), "little")
+        l_machine['unknown2'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['unknown3'] = int.from_bytes(data_str.read(1), "little")
+        l_machine['controls'] = deconstruct_CCOL(data_str)
+        l_machine['presetname'] = data_str.read(32).split(b'\x00')[0].decode('ascii')
+        presetpath_size = int.from_bytes(data_str.read(4), "little")
+        l_machine['presetpath'] = data_str.read(presetpath_size).split(b'\x00')[0].decode('ascii')
+        data_str.read(4)
+        numsamples = int.from_bytes(data_str.read(4), "little")
+        #print(numsamples)
+        regions = []
+        for _ in range(numsamples):
+            region = {}
+            region['volume'] = struct.unpack("f", data_str.read(4))[0]
+            data_str.read(4)
+            region['pan'] = struct.unpack("f", data_str.read(4))[0]
+            region['key_root'] = int.from_bytes(data_str.read(4), "little")
+            region['key_lo'] = int.from_bytes(data_str.read(4), "little")
+            region['key_hi'] = int.from_bytes(data_str.read(4), "little")
+            region['mode'] = int.from_bytes(data_str.read(4), "little")
+            region['start'] = int.from_bytes(data_str.read(4), "little")
+            region['end'] = int.from_bytes(data_str.read(4), "little")
+            region['path'] = data_str.read(256).split(b'\x00')[0].decode('ascii')
+            data_str.read(4)
+            sample_len = int.from_bytes(data_str.read(4), "little")
+            region['samp_hz'] = int.from_bytes(data_str.read(4), "little")
+            data_str.read(4)
+            sample_chan = int.from_bytes(data_str.read(4), "little")
+            region['samp_data'] = data_str.read((sample_len*2)*sample_chan)
+            region['samp_len'] = sample_len
+            region['samp_ch'] = sample_chan
+            regions.append(region)
+        l_machine['regions'] = regions
+        data_str.read(9)
+        l_machine['patterns'] = deconstruct_SPAT(data_str)
+    del l_machine['data']
 
 def deconstruct_OUTP(bi_rack, Caustic_Main):
     global caustic_machdata
@@ -206,13 +411,18 @@ def deconstruct_main(filepath):
     header = bi_rack.read(264)
 
     Caustic_Main = {}
+    Caustic_Main['EFFX'] = {}
 
     while racksize > bi_rack.tell():
         chunk_datatype = bi_rack.read(4)
         print('[format-caustic] main | chunk:', chunk_datatype)
         if chunk_datatype == b'OUTP': deconstruct_OUTP(bi_rack, Caustic_Main)
         elif chunk_datatype == b'EFFX': deconstruct_EFFX(bi_rack, Caustic_Main)
-        else: break
+        else: 
+            print('[format-caustic] main | unsupported chunk')
+            break
+
+    print(Caustic_Main['EFFX'])
 
     return Caustic_Main
 

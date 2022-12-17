@@ -69,18 +69,23 @@ def deconstruct_SPAT(bio_in):
     for patletter in range(4): 
         for patnum in range(16): 
             numnote = l_patterns[patletters[patletter]+str(patnum+1)]['numnote']
-            parse_note(SPAT_str, numnote)
+            l_patterns[patletters[patletter]+str(patnum+1)]['notes'] = parse_note(SPAT_str, numnote)
+
+    return l_patterns
+
 
 def deconstruct_SEQN(bi_rack, Caustic_Main):
     SEQN_size = int.from_bytes(bi_rack.read(4), "little")
     SEQN_data = bi_rack.read(SEQN_size)
     SEQN_str = data_bytes.bytearray2BytesIO(SEQN_data)
-    SEQN_header = struct.unpack("IbI", SEQN_str.read(12))
-    print(SEQN_header)
-    placementcount = SEQN_header[2]
+    SEQN_header = struct.unpack("II", SEQN_str.read(8))
+    placementcount = SEQN_header[1]
+    pln = []
     for _ in range(placementcount):
-        print(struct.unpack("IffIfIfffffffI", SEQN_str.read(56)))
-    print(len(SEQN_str.read(56)))
+        plndata = struct.unpack("IIffIfIfffffff", SEQN_str.read(56))
+        pln.append(plndata)
+    Caustic_Main['SEQN'] = pln
+
 # --------------------------------------------- Controls ---------------------------------------------
 
 def deconstruct_CCOL(bio_in):
@@ -456,25 +461,6 @@ def deconstruct_main(filepath):
         elif chunk_datatype == b'MIXR': deconstruct_MIXR(bi_rack, Caustic_Main)
         elif chunk_datatype == b'MSTR': deconstruct_MSTR(bi_rack, Caustic_Main)
         elif chunk_datatype == b'SEQN': deconstruct_SEQN(bi_rack, Caustic_Main)
-        else: 
-            print('[format-caustic] main | unsupported chunk')
-            break
+        else: break
 
     return Caustic_Main
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-CausticData = deconstruct_main('G:\\RandomMusicFiles\\caustic\\Dragon Valley FP2.caustic')
-
-#machinedata = CausticData['Machines'][0]

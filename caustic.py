@@ -75,9 +75,12 @@ def deconstruct_SEQN(bi_rack, Caustic_Main):
     SEQN_size = int.from_bytes(bi_rack.read(4), "little")
     SEQN_data = bi_rack.read(SEQN_size)
     SEQN_str = data_bytes.bytearray2BytesIO(SEQN_data)
-    print(SEQN_data.hex())
-
-
+    SEQN_header = struct.unpack("IbI", SEQN_str.read(12))
+    print(SEQN_header)
+    placementcount = SEQN_header[2]
+    for _ in range(placementcount):
+        print(struct.unpack("IffIfIfffffffI", SEQN_str.read(56)))
+    print(len(SEQN_str.read(56)))
 # --------------------------------------------- Controls ---------------------------------------------
 
 def deconstruct_CCOL(bio_in):
@@ -206,9 +209,9 @@ def deconstruct_MIXR(bi_rack, Caustic_Main):
 def deconstruct_MSTR(bi_rack, Caustic_Main):
     MSTR_size = int.from_bytes(bi_rack.read(4), "little")
     MSTR_data = bi_rack.read(MSTR_size)
-    MSTR_str = data_bytes.bytearray2BytesIO(MSTR_data)
-    MSTR_str.read(8)
-    Caustic_Main['MSTR'] = deconstruct_CCOL(MSTR_str)
+    #MSTR_str = data_bytes.bytearray2BytesIO(MSTR_data)
+    #MSTR_str.read(8)
+    #Caustic_Main['MSTR'] = deconstruct_CCOL(MSTR_str)
 
 # --------------------------------------------- Inst ---------------------------------------------
 
@@ -472,6 +475,6 @@ def deconstruct_main(filepath):
 
 
 
-CausticData = deconstruct_main('G:\\RandomMusicFiles\\caustic\\documents\\songs\\Test.caustic')
+CausticData = deconstruct_main('G:\\RandomMusicFiles\\caustic\\Dragon Valley FP2.caustic')
 
 #machinedata = CausticData['Machines'][0]

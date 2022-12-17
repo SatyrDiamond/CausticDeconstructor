@@ -21,8 +21,11 @@ caustic_instnames['SAWS'] = 'SawSynth'
 patletters = ['A','B','C','D']
 
 global EFFX_num
+
+global MSTR_num
     
 EFFX_num = 0
+MSTR_num = 0
 
 # --------------------------------------------- Patterns ---------------------------------------------
 
@@ -68,6 +71,13 @@ def deconstruct_SPAT(bio_in):
             numnote = l_patterns[patletters[patletter]+str(patnum+1)]['numnote']
             parse_note(SPAT_str, numnote)
 
+def deconstruct_SEQN(bi_rack, Caustic_Main):
+    SEQN_size = int.from_bytes(bi_rack.read(4), "little")
+    SEQN_data = bi_rack.read(SEQN_size)
+    SEQN_str = data_bytes.bytearray2BytesIO(SEQN_data)
+    print(SEQN_data.hex())
+
+
 # --------------------------------------------- Controls ---------------------------------------------
 
 def deconstruct_CCOL(bio_in):
@@ -87,9 +97,9 @@ def deconstruct_CCOL(bio_in):
     return CCOL_l_out
 
 # --------------------------------------------- FX ---------------------------------------------
+
 def deconstruct_fx(EFFX_str, l_fxparams):
     fxtype = int.from_bytes(EFFX_str.read(4), "little")
-    print(fxtype)
     params = l_fxparams
     if fxtype == 0: 
         params['type'] = 'Delay'
@@ -180,6 +190,25 @@ def deconstruct_EFFX(bi_rack, Caustic_Main):
     if EFFX_num == 0: bi_rack.read(4)
     Caustic_Main['EFFX'+str(EFFX_num)] = EFFX_data
     EFFX_num += 1
+
+# --------------------------------------------- Mixer ---------------------------------------------
+
+def deconstruct_MIXR(bi_rack, Caustic_Main):
+    global MSTR_num
+    MIXR_size = int.from_bytes(bi_rack.read(4), "little")
+    MIXR_data = bi_rack.read(MIXR_size)
+    MIXR_str = data_bytes.bytearray2BytesIO(MIXR_data)
+    MIXR_str.read(4)
+    Caustic_Main['MIXR'] = deconstruct_CCOL(MIXR_str)
+    if MSTR_num == 0: bi_rack.read(4)
+    MSTR_num += 1
+
+def deconstruct_MSTR(bi_rack, Caustic_Main):
+    MSTR_size = int.from_bytes(bi_rack.read(4), "little")
+    MSTR_data = bi_rack.read(MSTR_size)
+    MSTR_str = data_bytes.bytearray2BytesIO(MSTR_data)
+    MSTR_str.read(8)
+    Caustic_Main['MSTR'] = deconstruct_CCOL(MSTR_str)
 
 # --------------------------------------------- Inst ---------------------------------------------
 
@@ -421,11 +450,12 @@ def deconstruct_main(filepath):
         print('[format-caustic] main | chunk:', chunk_datatype)
         if chunk_datatype == b'OUTP': deconstruct_OUTP(bi_rack, Caustic_Main)
         elif chunk_datatype == b'EFFX': deconstruct_EFFX(bi_rack, Caustic_Main)
+        elif chunk_datatype == b'MIXR': deconstruct_MIXR(bi_rack, Caustic_Main)
+        elif chunk_datatype == b'MSTR': deconstruct_MSTR(bi_rack, Caustic_Main)
+        elif chunk_datatype == b'SEQN': deconstruct_SEQN(bi_rack, Caustic_Main)
         else: 
             print('[format-caustic] main | unsupported chunk')
             break
-
-    print(Caustic_Main['EFFX'])
 
     return Caustic_Main
 
